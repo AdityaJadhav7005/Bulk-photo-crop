@@ -109,7 +109,7 @@
 
 <script>
 // ---- CONFIG (MUST BE ON TOP) ----
-const BACKEND_BASE = window.location.origin;
+const BACKEND_BASE = "https://photo-crop-backend.onrender.com";
 const RAZORPAY_KEY = 'rzp_test_trialkey';
 
 // ---- AUTH STATE ----
@@ -575,23 +575,19 @@ cropBtn.addEventListener('click', doCrop);
 undoBtn.addEventListener('click', doUndo);
 
 // ---- BUY TOKENS (Razorpay flow) ----
-buyTokenBtn.addEventListener('click', async () => {
+buyTokenBtn.addEventListener("click", async () => {
   if (!loggedInEmail) {
     alert("Please login first");
     return;
   }
 
   try {
-    // 1️⃣ Create order from backend
     const resp = await fetch(BACKEND_BASE + "/api/create-order", {
       method: "POST"
     });
 
-    if (!resp.ok) throw new Error("Failed to create order");
-
     const order = await resp.json();
 
-    // 2️⃣ Razorpay options
     const options = {
       key: RAZORPAY_KEY,
       amount: order.amount,
@@ -599,53 +595,36 @@ buyTokenBtn.addEventListener('click', async () => {
       name: "Photo Crop Tokens",
       order_id: order.id,
 
-      // ✅ SUCCESS HANDLER
       handler: async function (response) {
-        try {
-          // 3️⃣ Verify payment on backend
-          const vr = await fetch(BACKEND_BASE + "/api/verify-payment", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_signature: response.razorpay_signature,
-              email: loggedInEmail
-            })
-          });
+        const vr = await fetch(BACKEND_BASE + "/api/verify-payment", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_order_id: response.razorpay_order_id,
+            razorpay_signature: response.razorpay_signature,
+            email: loggedInEmail
+          })
+        });
 
-          const data = await vr.json();
+        const data = await vr.json();
 
-          if (data.success) {
-            window.tokens += data.tokensAdded || 0;
-            updateTokenUI();
-            alert("Payment successful. Tokens added: " + data.tokensAdded);
-          } else {
-            alert("Payment verification failed");
-          }
-        } catch (err) {
-          console.error(err);
-          alert("Error verifying payment");
-        }
-      },
-
-      // ✅ MODAL CONFIG (ONLY UI RELATED)
-      modal: {
-        ondismiss: function () {
-          console.log("Payment popup closed");
+        if (data.success) {
+          window.tokens += data.tokensAdded;
+          updateTokenUI();
+          alert("Tokens added: " + data.tokensAdded);
         }
       }
     };
 
-    // 4️⃣ Open Razorpay popup
-    const rzp = new Razorpay(options);
-    rzp.open();
+    new Razorpay(options).open();
 
   } catch (err) {
+    alert("Payment error");
     console.error(err);
-    alert("Could not start payment: " + err.message);
   }
 });
+
 </script>
 </body>
 </html>
