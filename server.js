@@ -5,8 +5,11 @@ import path from "path";
 import { fileURLToPath } from "url";
 
 import authRoutes from "./routes/auth.js";
-import paymentRoutes from "./routes/payment.js";
 import connectDB from "./db.js";
+import paymentRoutes from "./routes/payment.js";
+
+app.use(express.json()); // VERY IMPORTANT
+app.use("/api", paymentRoutes);
 
 
 dotenv.config();
